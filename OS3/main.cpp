@@ -16,6 +16,7 @@
 #include <bitset>
 #include <fstream>
 #include <string>
+#include <bits/stdc++.h>
 using namespace std;
 
 #define PAGE_t 256 //Taille d'une page (256 bytes)
@@ -93,6 +94,32 @@ int rightRotate(int n, unsigned int d)
     return (n >> d)|(n << (32 - d)); 
 } 
 
+int TrouverPage(vector<int> &bits_page, int pageRecherchee) 
+{
+	vector<int>::iterator it;
+
+	it = find(bits_page.begin(), bits_page.end(), pageRecherchee);
+	if (it != bits_page.end()) 
+    { 
+        return it - bits_page.begin();
+    } 
+    else
+        return -1;
+}
+
+void LireFichierBin(ifstream &fichierBin, char * &buffer, int positionDebut, int positionFin)
+{
+	string ligne;
+	for (int i = 0; !fichierBin.eof(); i++)
+	{
+		getline(fichierBin, ligne);
+		if(i < positionDebut || i > positionFin + 1) continue;
+
+		
+	}
+	
+}
+
 //////////////////////
 //////////////////////////////////////////////////////////
 //////////////////////////////////////////////////////////
@@ -142,15 +169,28 @@ int main()
 
 
 
+	ifstream fichierSimulDisqueBinaire("OS3/simuleDisque.bin", ios::binary | ios::in);
+	if(!fichierSimulDisqueBinaire.is_open()){
+		cout << "ddsadsdad";
+	}
 
 	//Table de pages
 	//Une adresse � la fois, v�rifier si elle est dans la table de page
+
+	char * buffer = new char [1];
 
 	for (int i = 0; i < bits_page.size(); i++)
 	{
 
 		if (tablePage[bits_page[i]][1] != 1)
 		{
+			int position = bits_page.at(i) * 256;
+			//fichierSimulDisqueBinaire.seekg(position);
+			fichierSimulDisqueBinaire.read(buffer, 1);
+			//LireFichierBin(fichierSimulDisqueBinaire, buffer, position, position+256);
+
+			cout << buffer[0];
+
 			std::cout << "Page non-charg�e dans la table" << std::endl;
 			//Charger la page
 
