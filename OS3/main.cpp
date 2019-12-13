@@ -1,8 +1,8 @@
 ////////////////////////////////////////////////////////////////
 //devoir3.cpp
-//Créé par: Sara Séguin
+//Crï¿½ï¿½ par: Sara Sï¿½guin
 //Date: 24 octobre 2017
-//Modifié par:Sara Séguin
+//Modifiï¿½ par:Sara Sï¿½guin
 //Date de modification: 19 novembre 2019
 //Description:
 //CE FICHIER N'EST PAS EXHAUSTIF, IL DONNE SIMPLEMENT DES EXEMPLES ET UNE CERTAINE STRUCTURE.
@@ -21,10 +21,10 @@ using namespace std;
 #define PAGE_t 256 //Taille d'une page (256 bytes)
 
 ////////////////////////////////////////////////////////////////
-//Cette fonction retourne la valeur du byte signé
-//Créé par: 
+//Cette fonction retourne la valeur du byte signï¿½
+//Crï¿½ï¿½ par: 
 //Date: 
-//Modifié par:
+//Modifiï¿½ par:
 //Description:
 ////////////////////////////////////////////////////////////////
 /*int fct_SignedByte(int page, int offset,std::string nomduFichier)
@@ -33,23 +33,23 @@ using namespace std;
 	std::ifstream fichierBinaire;
 	fichierBinaire.open(nomduFichier);
 
-	unsigned int LENGTH = 1; //Le byte signé a une longueur de 1 byte
+	unsigned int LENGTH = 1; //Le byte signï¿½ a une longueur de 1 byte
 
 
-	nomduFichier.std::seekg(...); //Trouver l'endroit correspondant au byte signé dans le fichier
+	nomduFichier.std::seekg(...); //Trouver l'endroit correspondant au byte signï¿½ dans le fichier
 	nomduFichier.std::read(...); //Lire cet emplacement
 
 	//Fermer le fichier
 	fichierBinaire.close();
 
-	//Retourner la valeur du byte signé
+	//Retourner la valeur du byte signï¿½
 
 }
 */
 ////////////////////////////////////////////////////////////////
-//Cette fonction créé un masque afin de lire les bits nécessaires. NE PAS MODIFIER ET UTILISER TEL QUEL DANS LE MAIN
-//Créé par: Sara Séguin
-//Modifié par:
+//Cette fonction crï¿½ï¿½ un masque afin de lire les bits nï¿½cessaires. NE PAS MODIFIER ET UTILISER TEL QUEL DANS LE MAIN
+//Crï¿½ï¿½ par: Sara Sï¿½guin
+//Modifiï¿½ par:
 //Description:
 ////////////////////////////////////////////////////////////////
 unsigned createMask(unsigned a, unsigned b)
@@ -64,35 +64,34 @@ unsigned createMask(unsigned a, unsigned b)
 }
 
 
-void LireFichierAdresses(string fileName, int adressesPhysiques[1000])
+void LireFichierAdresses(string fileName, vector<int> &adresseLogique)
 {
-	
-	ifstream fichierContenantLesAdresses ( fileName);
-	//fichierContenantLesAdresses.open(nomDuFichierContenantLesAdresses, ios::in || ios::beg);
+	ifstream fichierContenantLesAdresses;
+	fichierContenantLesAdresses.open(fileName);
+	string ligne;
 
-	//if (fichierContenantLesAdresses.is_open())
-	//{
+	if (fichierContenantLesAdresses.is_open())
+	{
 		for (int x = 0; x < 1000; x++)
 		{
-			fichierContenantLesAdresses >> adressesPhysiques[x];
+			fichierContenantLesAdresses >> ligne;
+			adresseLogique.push_back(stoi(ligne));
 		}
 		fichierContenantLesAdresses.close();
 
 
-	//}
-
-	//else
-	//	cout << "fichier pas ouvert" << endl;
+	} else
+	{
+		cout << "fichier pas ouvert" << endl;
+	}
 
 	cout << "fonction finie";
 }
 
-int ExtractOffset(int a)
-{
-	int b = a % 256;
-	return b;
-
-}
+int rightRotate(int n, unsigned int d) 
+{ 
+    return (n >> d)|(n << (32 - d)); 
+} 
 
 //////////////////////
 //////////////////////////////////////////////////////////
@@ -107,14 +106,14 @@ int main()
 {
 
 
-	//Initialisation et déclarations
-	int memPhysique[256] = { 0 }; //Mémoire physique
-	int adressePhysique[1000] = { 0 }; //Adresses Physiques
-	int tablePage[256][2] = { 0 }; //Table de page
-	std::vector<int>adresseLogique; //Adresses Logiques
+	//Initialisation et dï¿½clarations
+	int memPhysique[256] = { 0 }; //Mï¿½moire physique
+	int adressePhysique[1000] = { 0 }; //Adresses Physiques(on utilise juste pour fichier output)
+	int tablePage[256][2] = { 0 }; //Table de page, 1 espace pour l'adresse et l'autre pour le dirty bit
+	vector<int>adresseLogique; //Adresses Logiques a traduire, prises a partir du fichier addresses.txt
 
-	//Lire le fichier d'adresses à traduire
-	LireFichierAdresses("addresses.txt", adressePhysique);
+	//Lire le fichier d'adresses ï¿½ traduire
+	LireFichierAdresses("OS3/addresses.txt", adresseLogique);
 
 
 	//Traduire l'adresse physique en adresse logique
@@ -124,47 +123,35 @@ int main()
 
 	std::vector<int>bits_offset, bits_page; //Un vecteur pour les bits de page et un autre pour les bits d'offset
 
-	//Crééer un masque pour lire juste les bits 0 à 7 (offset)
+	//Crï¿½ï¿½er un masque pour lire juste les bits 0 ï¿½ 7 (offset)
 	unsigned r = 0;
 	r = createMask(0, 7);
 
-	//Créer un masque pour lire juste les bits 8 à 15 (page)
+	//Crï¿½er un masque pour lire juste les bits 8 ï¿½ 15 (page)
 	unsigned r2 = 0;
 	r2 = createMask(8, 15);
 
 	//Boucler sur les 1000 adresses
 	for (int i = 0; i < adresseLogique.size(); i++)
 	{
-		bits_offset.at(i) = ExtractOffset(adressePhysique[i]);
-		int a = adressePhysique[i] - 256;
-		bits_page.at(i) = ExtractOffset(a);
-		//Traduire en bits, EXEMPLE
-		unsigned A = adresseLogique[i];
-		//EXEMPLE DE SYNTAXE POUR UTILISER LE MASQUE	
-		std::bitset<16>  result = r & A;
-		std::bitset<16>  result2 = r2 & A;
-
-
-		//TODO: ETC... 
-
-		//Vecteurs de page et d'offset
-
-		bits_page.push_back((result, nullptr, 2));
-		bits_offset.push_back((result2, nullptr, 2));
+		bits_offset.push_back(adresseLogique.at(i) & r);
+		unsigned a = adresseLogique.at(i) & r2;
+		a = rightRotate(a, 8);
+		bits_page.push_back(a);
 	}
 
 
 
 
 	//Table de pages
-	//Une adresse à la fois, vérifier si elle est dans la table de page
+	//Une adresse ï¿½ la fois, vï¿½rifier si elle est dans la table de page
 
 	for (int i = 0; i < bits_page.size(); i++)
 	{
 
 		if (tablePage[bits_page[i]][1] != 1)
 		{
-			std::cout << "Page non-chargée dans la table" << std::endl;
+			std::cout << "Page non-chargï¿½e dans la table" << std::endl;
 			//Charger la page
 
 
@@ -177,9 +164,9 @@ int main()
 	//Calcul de l'adresse physique
 	for (int i = 0; i < bits_page.size(); i++)
 	{
-		//Construire en bits et traduire en décimal
+		//Construire en bits et traduire en dï¿½cimal
 
-		//Obtenir la valeur du byte signé
+		//Obtenir la valeur du byte signï¿½
 		//TODO: fix this line
 		//... = fct_SignedByte(bits_page[i], bits_offset[i]);
 
