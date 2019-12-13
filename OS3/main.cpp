@@ -94,18 +94,10 @@ int rightRotate(int n, unsigned int d)
     return (n >> d)|(n << (32 - d)); 
 } 
 
-int TrouverPage(vector<int> &bits_page, int pageRecherchee) 
-{
-	vector<int>::iterator it;
-
-	it = find(bits_page.begin(), bits_page.end(), pageRecherchee);
-	if (it != bits_page.end()) 
-    { 
-        return it - bits_page.begin();
-    } 
-    else
-        return -1;
-}
+int leftRotate(int n, unsigned int d) 
+{ 
+    return (n << d)|(n >> (32 - d)); 
+} 
 
 void LireFichierBin(ifstream &fichierBin, char * &buffer, int positionDebut, int positionFin)
 {
@@ -117,8 +109,39 @@ void LireFichierBin(ifstream &fichierBin, char * &buffer, int positionDebut, int
 
 		
 	}
-	
 }
+
+int RechercheTLB(int TLB[16][2], int pageRecherchee)
+{
+	for (int i = 0; i < 16; i++)
+	{
+		if(TLB[i][0] == pageRecherchee){
+			return TLB[i][1];
+		}
+	}
+	return -1;
+}
+
+void GestionTLB(vector<int> &TLB, int page)
+{
+	TLB.push_back(page);
+	bool trouve = false;
+	for (int i = TLB.size()-2; i >= 0; i++)
+	{
+		if(TLB[i] == page)
+		{
+			TLB.erase(TLB.begin() + i);
+			trouve = true;
+		}
+
+	}
+
+	if (trouve = false)
+		TLB.erase(TLB.begin());
+	
+
+}
+
 
 //////////////////////
 //////////////////////////////////////////////////////////
@@ -138,6 +161,8 @@ int main()
 	int adressePhysique[1000] = { 0 }; //Adresses Physiques(on utilise juste pour fichier output)
 	int tablePage[256][2] = { 0 }; //Table de page, 1 espace pour l'adresse et l'autre pour le dirty bit
 	vector<int>adresseLogique; //Adresses Logiques a traduire, prises a partir du fichier addresses.txt
+	int TLB[16][2];
+	vector<int> ordreTLB;
 
 	//Lire le fichier d'adresses � traduire
 	LireFichierAdresses("OS3/addresses.txt", adresseLogique);
@@ -179,24 +204,31 @@ int main()
 
 	char * buffer = new char [1];
 
+	int frame;
+
 	for (int i = 0; i < bits_page.size(); i++)
 	{
-
-		if (tablePage[bits_page[i]][1] != 1)
+		if(frame = RechercheTLB(TLB, bits_page[i]) != -1)
+		{
+			adressePhysique[i] = leftRotate(frame, 8);
+			adressePhysique[i] += bits_offset.at(i);
+		}
+		else if (tablePage[bits_page[i]][1] != 1)
 		{
 			int position = bits_page.at(i) * 256;
 			//fichierSimulDisqueBinaire.seekg(position);
 			fichierSimulDisqueBinaire.read(buffer, 1);
-			//LireFichierBin(fichierSimulDisqueBinaire, buffer, position, position+256);
+			//LireFichierBin(fichierSimulDisqueBinaire, buffer, position, position+256);TODO: enlever
 
 			cout << buffer[0];
 
-			std::cout << "Page non-charg�e dans la table" << std::endl;
-			//Charger la page
 
 
 
 		}
+
+		//TODO: ajouter function de gestion du tlb
+		
 	}
 
 
