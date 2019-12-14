@@ -17,6 +17,7 @@
 #include <fstream>
 #include <string>
 #include <bits/stdc++.h>
+#include <chrono>
 using namespace std;
 
 #define PAGE_t 256 //Taille d'une page (256 bytes)
@@ -164,7 +165,9 @@ void GestionTLB(int TLB[16][2], int page, int numFrame)
 //////////////////////////////////////////////////////////
 int main()
 {
+	auto start = chrono::system_clock::now();
 
+	int pageFaults = 0;
 
 	//Initialisation et d�clarations
 	int memPhysique[256] = { 0 }; //M�moire physique
@@ -212,9 +215,10 @@ int main()
 	//Table de pages
 	//Une adresse � la fois, v�rifier si elle est dans la table de page
 
-	char * buffer = new char [1];
+	char * buffer = new char [256];
 
 	int frame;
+	int numFrame;
 
 	for (int i = 0; i < bits_page.size(); i++)
 	{
@@ -226,17 +230,43 @@ int main()
 		}
 		else if (tablePage[bits_page[i]][1] != 1)
 		{
+			pageFaults++;
 			int position = bits_page.at(i) * 256;
-			//fichierSimulDisqueBinaire.seekg(position);
-			fichierSimulDisqueBinaire.read(buffer, 1);
-			//LireFichierBin(fichierSimulDisqueBinaire, buffer, position, position+256);TODO: enlever
+			fichierSimulDisqueBinaire.seekg(position);
+			fichierSimulDisqueBinaire.read(buffer, 256);
 
-			cout << buffer[0];
+			/*for (int i = 0; i < 256; i++)
+			{
+				cout << buffer[i]<< endl;
+			}*/
+			//on cherche le premier frame libre dans la memoire
+			for (int i = 0; i < 256; i++)
+			{
+				if(memPhysique[i] == 0) 
+				{
+					numFrame = i;
+					break;
+				}
+			}
+			
+			for (int i = 0; i < 256; i++)
+			{
+				memPhysique[numFrame] += buffer[i];
+			}
+			
+
 
 			//Je met le bit a 1 pour dire que la page est chargee
-			tablePage[bits_page[i]][0] = bits_page[i];//pas forcement vrai mais pour test, on obtient la valeur en chargeant la page
+			adressePhysique[i] = leftRotate(numFrame, 8);
+			adressePhysique[i] += bits_offset.at(i);
+			tablePage[bits_page[i]][0] = numFrame;
 			tablePage[bits_page[i]][1] = 1;
+		} else
+		{
+			adressePhysique[i] = leftRotate(tablePage[bits_page[i]][0], 8);
+			adressePhysique[i] += bits_offset.at(i);
 		}
+		
 
 		//TODO: ajouter function de gestion du tlb
 		GestionTLB(TLB, bits_page[i], tablePage[bits_page[i]][0]);
@@ -258,9 +288,25 @@ int main()
 
 
 
-	//Ecrire le fichier de sortie
+	ofstream output("output.txt");
 
+	double pourcentagePageFault = (pageFaults/(double)adresseLogique.size())*100;
 
+	auto end = chrono::system_clock::now();
+	chrono::duration<double> tempsExecution = end-start;
+
+	cout << "\nRatio page fault: " << pourcentagePageFault << "%\n";
+	cout << "Temps execution: " << tempsExecution.count() << " secondes\n";
+
+	output << "Temps execution: " << tempsExecution.count() << " secondes\n";
+	output << "Ratio page fault: " << pourcentagePageFault << "%\n";
+
+	for (int i = 0; i < 1000; i++)
+	{
+		output << adresseLogique.at(i) << "\t" << adressePhysique[i] << "\t" << "valeur byte signe dec et bin\n";
+
+	}
+	
 
 	return 0;
 
