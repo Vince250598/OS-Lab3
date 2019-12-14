@@ -122,24 +122,34 @@ int RechercheTLB(int TLB[16][2], int pageRecherchee)
 	return -1;
 }
 
-void GestionTLB(vector<int> &TLB, int page)
+void GestionTLB(int TLB[16][2], int page, int numFrame)
 {
-	TLB.push_back(page);
-	bool trouve = false;
-	for (int i = TLB.size()-2; i >= 0; i++)
-	{
-		if(TLB[i] == page)
+	int frame = RechercheTLB(TLB, page);
+
+	if(frame == -1) {
+		//on avance tous les element de 1 case
+		for (int i = 0; i < 15; i++)
 		{
-			TLB.erase(TLB.begin() + i);
-			trouve = true;
+			TLB[i][0] = TLB[i+1][0];
+			TLB[i][1] = TLB[i+1][1];
 		}
-
+		TLB[15][0] = page;
+		TLB[15][1] = numFrame;
+	} else //si l'element est deja dans le tlb
+	{
+		int positionElement;
+		for (int i = 0; i < 16; i++)
+		{
+			if(TLB[i][0] == page) positionElement = i;
+		}
+		for (int i = positionElement; i < 15; i++)
+		{
+			TLB[i][0] = TLB[i+1][0];
+			TLB[i][1] = TLB[i+1][1];
+		}
+		TLB[15][0] = page;
+		TLB[15][1] = numFrame;
 	}
-
-	if (trouve = false)
-		TLB.erase(TLB.begin());
-	
-
 }
 
 
@@ -208,7 +218,8 @@ int main()
 
 	for (int i = 0; i < bits_page.size(); i++)
 	{
-		if(frame = RechercheTLB(TLB, bits_page[i]) != -1)
+		frame = RechercheTLB(TLB, bits_page[i]);
+		if(frame != -1)
 		{
 			adressePhysique[i] = leftRotate(frame, 8);
 			adressePhysique[i] += bits_offset.at(i);
@@ -222,12 +233,13 @@ int main()
 
 			cout << buffer[0];
 
-
-
-
+			//Je met le bit a 1 pour dire que la page est chargee
+			tablePage[bits_page[i]][0] = bits_page[i];//pas forcement vrai mais pour test, on obtient la valeur en chargeant la page
+			tablePage[bits_page[i]][1] = 1;
 		}
 
 		//TODO: ajouter function de gestion du tlb
+		GestionTLB(TLB, bits_page[i], tablePage[bits_page[i]][0]);
 		
 	}
 
