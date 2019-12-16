@@ -22,32 +22,7 @@ using namespace std;
 
 #define PAGE_t 256 //Taille d'une page (256 bytes)
 
-////////////////////////////////////////////////////////////////
-//Cette fonction retourne la valeur du byte sign�
-//Cr�� par: 
-//Date: 
-//Modifi� par:
-//Description:
-////////////////////////////////////////////////////////////////
-/*int fct_SignedByte(int page, int offset,std::string nomduFichier)
-{
-	//Ouvrir le fichier binaire
-	std::ifstream fichierBinaire;
-	fichierBinaire.open(nomduFichier);
 
-	unsigned int LENGTH = 1; //Le byte sign� a une longueur de 1 byte
-
-
-	nomduFichier.std::seekg(...); //Trouver l'endroit correspondant au byte sign� dans le fichier
-	nomduFichier.std::read(...); //Lire cet emplacement
-
-	//Fermer le fichier
-	fichierBinaire.close();
-
-	//Retourner la valeur du byte sign�
-
-}
-*/
 ////////////////////////////////////////////////////////////////
 //Cette fonction cr�� un masque afin de lire les bits n�cessaires. NE PAS MODIFIER ET UTILISER TEL QUEL DANS LE MAIN
 //Cr�� par: Sara S�guin
@@ -172,7 +147,15 @@ int main()
 	int valeurOctetsSignes[1000];
 
 	//Initialisation et d�clarations
-	int memPhysique[256][256] = { 0 }; //M�moire physique
+	int memPhysique[256][PAGE_t]; //M�moire physique
+	for (int i = 0; i < PAGE_t; i++)
+	{
+		for (int j = 0; j < PAGE_t; j++)
+		{
+			memPhysique[i][j] = -1;
+		}
+	}
+	
 	int adressePhysique[1000] = { 0 }; //Adresses Physiques(on utilise juste pour fichier output)
 	int tablePage[256][2] = { 0 }; //Table de page, 1 espace pour l'adresse et l'autre pour le dirty bit
 	vector<int>adresseLogique; //Adresses Logiques a traduire, prises a partir du fichier addresses.txt
@@ -182,11 +165,6 @@ int main()
 	//Lire le fichier d'adresses � traduire
 	LireFichierAdresses("OS3/addresses.txt", adresseLogique);
 
-
-	//Traduire l'adresse physique en adresse logique
-	//1. Traduire l'entier en bits
-
-	//Stocker les nombres binaires dans un vecteur
 
 	std::vector<int>bits_offset, bits_page; //Un vecteur pour les bits de page et un autre pour les bits d'offset
 
@@ -214,9 +192,6 @@ int main()
 		cout << "ddsadsdad";
 	}
 
-	//Table de pages
-	//Une adresse � la fois, v�rifier si elle est dans la table de page
-
 	char * buffer = new char [256];
 
 	int frame;
@@ -230,7 +205,6 @@ int main()
 			adressePhysique[i] = leftRotate(frame, 8);
 			adressePhysique[i] += bits_offset.at(i);
 			TLBHits++;
-			numFrame = frame;
 		}
 		else if (tablePage[bits_page[i]][1] != 1)
 		{
@@ -239,14 +213,10 @@ int main()
 			fichierSimulDisqueBinaire.seekg(position);
 			fichierSimulDisqueBinaire.read(buffer, 256);
 
-			/*for (int i = 0; i < 256; i++)
-			{
-				cout << buffer[i]<< endl;
-			}*/
 			//on cherche le premier frame libre dans la memoire
 			for (int i = 0; i < 256; i++)
 			{
-				if(memPhysique[i] == 0) 
+				if(memPhysique[i][0] == -1) 
 				{
 					numFrame = i;
 					break;
@@ -272,27 +242,11 @@ int main()
 		}
 		
 
-		//TODO: ajouter function de gestion du tlb
 		GestionTLB(TLB, bits_page[i], tablePage[bits_page[i]][0]);
 		octetsSignes[i] = numFrame*PAGE_t + bits_offset.at(i);
 		valeurOctetsSignes[i] = memPhysique[numFrame][bits_offset[i]];
 		
 	}
-
-
-
-	//Calcul de l'adresse physique
-	for (int i = 0; i < bits_page.size(); i++)
-	{
-		//Construire en bits et traduire en d�cimal
-
-		//Obtenir la valeur du byte sign�
-		//TODO: fix this line
-		//... = fct_SignedByte(bits_page[i], bits_offset[i]);
-
-	}
-
-
 
 	ofstream output("output.txt");
 
@@ -313,9 +267,8 @@ int main()
 	for (int i = 0; i < 1000; i++)
 	{
 		output << adresseLogique.at(i) << "\t" << adressePhysique[i] << "\t";
-		output << octetsSignes[i] << "\t" << memPhysique[octetsSignes[i]] << endl;
+		output << octetsSignes[i] << "\t" << valeurOctetsSignes[i] << endl;
 	}
-	
 
 	return 0;
 
