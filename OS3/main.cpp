@@ -40,7 +40,12 @@ unsigned createMask(unsigned a, unsigned b)
 	return r;
 }
 
-
+/**
+ * @brief  Lit le fichier contenant les 1000 adresses logiques et les places dans le vecteur d'adresses logiques
+ * @param  fileName: nom du fichier contenant les adresses logiques
+ * @param  &adresseLogique: le vecteur dans lequel on charge les adresses
+ * @retval None
+ */
 void LireFichierAdresses(string fileName, vector<int> &adresseLogique)
 {
 	ifstream fichierContenantLesAdresses;
@@ -65,28 +70,34 @@ void LireFichierAdresses(string fileName, vector<int> &adresseLogique)
 	cout << "fonction finie";
 }
 
+/**
+ * @brief  Fait une rotation à droite des bits d'un nombre entier 
+ * @param  n: L'entier sur lequel on fait la rotation
+ * @param  d: Le nombre de rotations a faire
+ * @retval L'entier boucler sur lui-même
+ */
 int rightRotate(int n, unsigned int d) 
 { 
     return (n >> d)|(n << (32 - d)); 
 } 
 
+/**
+ * @brief  Fait une rotation à gauche des bits d'un entier
+ * @param  n: L'entier sur lequel on fait la rotation
+ * @param  d: Le nombre de rotation à faire
+ * @retval L'entier boucler sur lui-même
+ */
 int leftRotate(int n, unsigned int d) 
 { 
     return (n << d)|(n >> (32 - d)); 
 } 
 
-void LireFichierBin(ifstream &fichierBin, char * &buffer, int positionDebut, int positionFin)
-{
-	string ligne;
-	for (int i = 0; !fichierBin.eof(); i++)
-	{
-		getline(fichierBin, ligne);
-		if(i < positionDebut || i > positionFin + 1) continue;
-
-		
-	}
-}
-
+/**
+ * @brief  Recherche une page dans le TLB
+ * @param  TLB[16][2]: Le TLB
+ * @param  pageRecherchee: La page que l'on cherche
+ * @retval retourne l'adresse du frame si trouvé ou -1 si non présent
+ */
 int RechercheTLB(int TLB[16][2], int pageRecherchee)
 {
 	for (int i = 0; i < 16; i++)
@@ -98,6 +109,13 @@ int RechercheTLB(int TLB[16][2], int pageRecherchee)
 	return -1;
 }
 
+/**
+ * @brief  Gère l'ajout et le retrait de valeur dans le TLB
+ * @param  TLB[16][2]: Le TLB
+ * @param  page: La page à chargée
+ * @param  numFrame: Le numéro du frame dans lequel la page est chargé
+ * @retval None
+ */
 void GestionTLB(int TLB[16][2], int page, int numFrame)
 {
 	int frame = RechercheTLB(TLB, page);
@@ -147,20 +165,21 @@ int main()
 	int valeurOctetsSignes[1000];
 
 	//Initialisation et d�clarations
-	int memPhysique[256][PAGE_t]; //M�moire physique
+	//On met la mémoire physique à 257 pour pouvoir savoir si elle est occupé ou non
+	//8 bit ne peuvent pas représenter 257, sert pour trouver un frame libre
+	int memPhysique[256][PAGE_t];
 	for (int i = 0; i < PAGE_t; i++)
 	{
 		for (int j = 0; j < PAGE_t; j++)
 		{
-			memPhysique[i][j] = -1;
+			memPhysique[i][j] = 257;
 		}
 	}
 	
 	int adressePhysique[1000] = { 0 }; //Adresses Physiques(on utilise juste pour fichier output)
 	int tablePage[256][2] = { 0 }; //Table de page, 1 espace pour l'adresse et l'autre pour le dirty bit
 	vector<int>adresseLogique; //Adresses Logiques a traduire, prises a partir du fichier addresses.txt
-	int TLB[16][2];
-	vector<int> ordreTLB;
+	int TLB[16][2];	//TLB, 1 case pour la page et 1 case pour le frame
 
 	//Lire le fichier d'adresses � traduire
 	LireFichierAdresses("OS3/addresses.txt", adresseLogique);
@@ -176,7 +195,9 @@ int main()
 	unsigned r2 = 0;
 	r2 = createMask(8, 15);
 
-	//Boucler sur les 1000 adresses
+	//Boucler sur les 1000 adresses logiques
+	//Pour chaque adresse on met la première partie dans le vecteur d'offset et la deuxième dans 
+	//le vecteur de pages en utilisant les masques et la rotation de bits
 	for (int i = 0; i < adresseLogique.size(); i++)
 	{
 		bits_offset.push_back(adresseLogique.at(i) & r);
@@ -188,9 +209,6 @@ int main()
 
 
 	ifstream fichierSimulDisqueBinaire("OS3/simuleDisque.bin", ios::binary | ios::in);
-	if(!fichierSimulDisqueBinaire.is_open()){
-		cout << "ddsadsdad";
-	}
 
 	char * buffer = new char [256];
 
@@ -200,52 +218,59 @@ int main()
 	for (int i = 0; i < bits_page.size(); i++)
 	{
 		frame = RechercheTLB(TLB, bits_page[i]);
+		//On regarde si la page se trouve dans le TLB
 		if(frame != -1)
 		{
+			//si oui on ne fait qu'ajouter au tableau adressePhysique pour le fichier output et TLBhits++
 			adressePhysique[i] = leftRotate(frame, 8);
 			adressePhysique[i] += bits_offset.at(i);
 			TLBHits++;
 		}
+		//sinon, on regarde si la page est chargé avec le bit chargé de la table de page
 		else if (tablePage[bits_page[i]][1] != 1)
 		{
 			pageFaults++;
-			int position = bits_page.at(i) * 256;
+			//On lit 256 octets du fichier binaire à la bonne position et on les place dans le buffer
+			int position = bits_page.at(i) * PAGE_t;
 			fichierSimulDisqueBinaire.seekg(position);
-			fichierSimulDisqueBinaire.read(buffer, 256);
+			fichierSimulDisqueBinaire.read(buffer, PAGE_t);
 
 			//on cherche le premier frame libre dans la memoire
 			for (int i = 0; i < 256; i++)
 			{
-				if(memPhysique[i][0] == -1) 
+				if(memPhysique[i][0] == 257) 
 				{
 					numFrame = i;
 					break;
 				}
 			}
 			
+			//On place chaque élément du buffer dans le bon frame en mémoire principal
 			for (int i = 0; i < 256; i++)
 			{
 				memPhysique[numFrame][i] = buffer[i];
 			}
 			
-
-
-			//Je met le bit a 1 pour dire que la page est chargee
-			adressePhysique[i] = leftRotate(numFrame, 8);
-			adressePhysique[i] += bits_offset.at(i);
+			//on met à jour la table de page
 			tablePage[bits_page[i]][0] = numFrame;
 			tablePage[bits_page[i]][1] = 1;
+
+			//On met à jour pour l'output.txt
+			adressePhysique[i] = leftRotate(numFrame, 8);
+			adressePhysique[i] += bits_offset.at(i);
 		} else
 		{
+			//si déjà chargé, on met à jour pour le fichier output.txt
 			adressePhysique[i] = leftRotate(tablePage[bits_page[i]][0], 8);
 			adressePhysique[i] += bits_offset.at(i);
 		}
 		
-
+		//On met à jour les entrées du TLB
 		GestionTLB(TLB, bits_page[i], tablePage[bits_page[i]][0]);
+
+		//Pour le fichier output.txt
 		octetsSignes[i] = numFrame*PAGE_t + bits_offset.at(i);
 		valeurOctetsSignes[i] = memPhysique[numFrame][bits_offset[i]];
-		
 	}
 
 	ofstream output("output.txt");
