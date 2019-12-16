@@ -166,11 +166,13 @@ void GestionTLB(int TLB[16][2], int page, int numFrame)
 int main()
 {
 	auto start = chrono::system_clock::now();
-
+	int TLBHits = 0;
 	int pageFaults = 0;
+	int octetsSignes[1000];
+	int valeurOctetsSignes[1000];
 
 	//Initialisation et d�clarations
-	int memPhysique[256] = { 0 }; //M�moire physique
+	int memPhysique[256][256] = { 0 }; //M�moire physique
 	int adressePhysique[1000] = { 0 }; //Adresses Physiques(on utilise juste pour fichier output)
 	int tablePage[256][2] = { 0 }; //Table de page, 1 espace pour l'adresse et l'autre pour le dirty bit
 	vector<int>adresseLogique; //Adresses Logiques a traduire, prises a partir du fichier addresses.txt
@@ -227,6 +229,8 @@ int main()
 		{
 			adressePhysique[i] = leftRotate(frame, 8);
 			adressePhysique[i] += bits_offset.at(i);
+			TLBHits++;
+			numFrame = frame;
 		}
 		else if (tablePage[bits_page[i]][1] != 1)
 		{
@@ -251,7 +255,7 @@ int main()
 			
 			for (int i = 0; i < 256; i++)
 			{
-				memPhysique[numFrame] += buffer[i];
+				memPhysique[numFrame][i] = buffer[i];
 			}
 			
 
@@ -270,6 +274,8 @@ int main()
 
 		//TODO: ajouter function de gestion du tlb
 		GestionTLB(TLB, bits_page[i], tablePage[bits_page[i]][0]);
+		octetsSignes[i] = numFrame*PAGE_t + bits_offset.at(i);
+		valeurOctetsSignes[i] = memPhysique[numFrame][bits_offset[i]];
 		
 	}
 
@@ -292,6 +298,8 @@ int main()
 
 	double pourcentagePageFault = (pageFaults/(double)adresseLogique.size())*100;
 
+	double pourcentageTLBHits = (TLBHits/(double)adresseLogique.size())*100;
+
 	auto end = chrono::system_clock::now();
 	chrono::duration<double> tempsExecution = end-start;
 
@@ -300,11 +308,12 @@ int main()
 
 	output << "Temps execution: " << tempsExecution.count() << " secondes\n";
 	output << "Ratio page fault: " << pourcentagePageFault << "%\n";
+	output << "Succes TLB: " << pourcentageTLBHits << "%\n";
 
 	for (int i = 0; i < 1000; i++)
 	{
-		output << adresseLogique.at(i) << "\t" << adressePhysique[i] << "\t" << "valeur byte signe dec et bin\n";
-
+		output << adresseLogique.at(i) << "\t" << adressePhysique[i] << "\t";
+		output << octetsSignes[i] << "\t" << memPhysique[octetsSignes[i]] << endl;
 	}
 	
 
